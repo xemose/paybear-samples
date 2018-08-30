@@ -2,7 +2,7 @@
 namespace PayBear;
 
 use PayBear\PayBear;
-use PayBear\Error;
+use PayBear\Error\CustomException;
 
 class ApiRequest
 {
@@ -27,5 +27,22 @@ class ApiRequest
 		$this->apiBase = (!$apiBase) ? PayBear::$apiBase : $apiBase;
 	}
 
-	
+	public function request($method, $url, $params = null, $headers=null)
+	{
+		$params = $params ?: [];
+		$headers = $headers ?: [];
+		list($rbody, $rcode, $rheaders, $apiKey) = self::_requestRaw($method, $url, $params, $headers);
+		$json = self::_interceptResponse($rbody, $rcode, $rheaders);
+		$resp = new APIResponse($rbody, $rcode, $rheaders, $json);
+		return [$resp, $apiKey];
+	}
+
+	private function _requestRaw($method, $url, $params, $headers)
+	{
+		if ($this->apiKey) {
+
+		} else {
+			throw new CustomException('No API key provided.')
+		}
+	}
 }

@@ -3,7 +3,7 @@
 namespace PayBear\HttpClient;
 
 use PayBear\PayBear;
-use PayBear\Error;
+use PayBear\Error\CustomException;
 use PayBear\Util\RandomGenerator;
 
 /**
@@ -12,7 +12,7 @@ use PayBear\Util\RandomGenerator;
  *
  * @package PayBear
  */
-class MainClient implements ClientInterface
+class CurlClient implements ClientInterface
 {
 	// @var object Instance for HTTP Client
 	private static $instance;
@@ -113,17 +113,17 @@ class MainClient implements ClientInterface
     	switch ($method) {
     		case 'get':
     		if ($hasfile) {
-    			throw new Exception('Error: Cannot make GET request with file parameter');
+    			throw new CustomException('Cannot make GET request with file parameter.');
     		} else {
     			$opts['CURL_HTTPGET'] = 1;
     		}
     		break;
     		case 'post':
     		case 'delete':
-    		throw new Exception('Error: HTTP Method not supported');
+    		throw new CustomException('HTTP Method not supported.');
     		break;
     		default:
-    		throw new Exception('Error: HTTP Method not supported');
+    		throw new CustomException('HTTP Method not supported.');
     	}
 
     	/*
@@ -198,14 +198,13 @@ class MainClient implements ClientInterface
     		$msg = "Could not verify PayBear's SSL certificate. Your network might be intercepting your requests. Try going to ${url} in your browser.";
     		break;
     		default:
-    		$msg = "An unexcepted error occured while trying to communicate with PayBear's API";
+    		$msg = "An unexcepted error occured while trying to communicate with PayBear's API.";
     	}
-    	$msg .= "If this problem persists, please contact support at https://www.paybear.io/contact.";
     	$msg .= "\n\nRequest Information:";
     	$msg .= "\nErrno: ${errno}";
     	$msg .= "\nError Message: ${message}";
     	$msg .= "\nNumber of retries: ${numRetries}";
-    	throw new Exception("Error: ${msg}");
+    	throw new CustomException($msg);
     }
 
     /**
