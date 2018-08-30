@@ -19,6 +19,15 @@ class PayBear
 	// @var string The API version used.
 	public static $apiVersion = 'v2';
 
+	// @var int Maximum number of request retries
+	public static $maxNetworkRetries = 2;
+
+    // @var float Maximum delay between retries, in seconds
+	private static $maxNetworkRetryDelay = 2.0;
+
+    // @var float Initial delay between retries, in seconds
+	private static $initialNetworkRetryDelay = 0.5;
+
     /**
      * @return string The PayBear API key used for requests.
      */
@@ -53,5 +62,37 @@ class PayBear
     public static function setApiVersion($apiVersion)
     {
     	self::$apiVersion = $apiVersion;
+    }
+
+    /**
+     * @return int Maximum number of request retries
+     */
+    public static function getMaxNetworkRetries()
+    {
+    	return self::$maxNetworkRetries;
+    }
+
+    /**
+     * @param int $maxNetworkRetries Maximum number of request retries
+     */
+    public static function setMaxNetworkRetries($maxNetworkRetries)
+    {
+    	self::$maxNetworkRetries = $maxNetworkRetries;
+    }
+
+    /**
+     * @return float Maximum delay between retries, in seconds
+     */
+    public static function getMaxNetworkRetryDelay()
+    {
+    	return self::$maxNetworkRetryDelay;
+    }
+
+    /**
+     * @return float Initial delay between retries, in seconds
+     */
+    public static function getInitialNetworkRetryDelay()
+    {
+    	return self::$initialNetworkRetryDelay;
     }
 }

@@ -2,7 +2,9 @@
 
 namespace PayBear\HttpClient;
 
+use PayBear\PayBear;
 use PayBear\Error;
+use PayBear\Util\RandomGenerator;
 
 /**
  * Class Base
@@ -14,6 +16,9 @@ class MainClient implements ClientInterface
 {
 	// @var object Instance for HTTP Client
 	private static $instance;
+
+	// @var array Array of stable retry errors
+	private static $stable;
 
 	// @var string Timeout for curl requests
 	private $timeout;
@@ -36,11 +41,21 @@ class MainClient implements ClientInterface
      * Set up curl options for future requests
      * Calls initCurl function to setup default options
      *
-     * @param string $options
+     * @param string|null $options
      */
     public function __construct($options = null)
     {
     	self::setTimeouts($options);
+    	self::$stable = [
+    		'errno' => [
+    			'CURLE_OPERATION_TIMEOUTED',
+    			'CURLE_COULDNT_CONNECT'
+    		],
+    		'rcode' =>
+    		[
+    			'409'
+    		]
+    	];
     }
 
     // Default Timeout Values
@@ -52,7 +67,7 @@ class MainClient implements ClientInterface
      * Set up timeout for curl requests
      * Future ability to set custom timeouts
      *
-     * @param string $options
+     * @param string|null $options
      */
     public function setTimeouts($options = null)
     {
@@ -76,7 +91,15 @@ class MainClient implements ClientInterface
     	return $this->connectTimeout;
     }
 
-    public function request($method, $headers, $params, $url, $hasFile)
+   /**
+     * Set up rqeuest for execution
+     *
+     * @param string $method The HTTP method being used.
+     * @param string $url The URL being used.
+     * @param array|null $params The paramters being used.
+     * @param string|null $hasFile The file being used.
+     */
+    public function request($method, $url, $params = null, $hasFile = null)
     {
     	$method = strtolower($method);
     	$opts = [];
@@ -155,6 +178,12 @@ class MainClient implements ClientInterface
 
     /**
      * Handles any errors from curl requests
+     *
+ 	 * @param string $url
+     * @param int $errno
+     * @param string $message
+     * @param int $numRetries
+     * @throws Exception
      */
     private function handleCurlError($url, $errno, $message, $numRetries)
     {
@@ -178,4 +207,35 @@ class MainClient implements ClientInterface
     	$msg .= "\nNumber of retries: ${numRetries}";
     	throw new Exception("Error: ${msg}");
     }
-}
+
+    /**
+     * Checks if request should be retried.
+     *
+     * @param int $errno
+     * @param int $rcode
+     * @param int $numRetries
+     * @return bool
+     */
+    private function retryCalculate($errno, $rcode, $numRetries)
+    {
+    	if ($numRetries <= PayBear::getMaxNetworkRetries() && in_array($errno, self::$stable['Errno']) && in_array($rcode, self::$stable['rcode'])) {
+    		return true;
+    	} else {
+    		return false;
+    	}
+    }
+
+     /**
+     * Determines and executes request sleep time
+     *
+     * @param int $numRetries
+     * @return bool
+     */
+     private function sleepTime($numRetries)
+     {
+     	$sleepSeconds = min(PayBear::getInitialNetworkRetryDelay() * 1.0 * pow(2, $numRetries - 1), PayBear::getMaxNetworkRetryDelay());
+     	$sleepSeconds *= 0.5 * (1 + randomGenerator::randFloat());
+     	$sleepSeconds = max(PayBear::getInitialNetworkRetryDelay(), $sleepSeconds);
+     	return $sleepSeconds;
+     }
+ }
