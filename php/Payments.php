@@ -1,7 +1,8 @@
 <?php
 namespace PayBear;
 
-use PayBear\HttpClient\ClientInterface;
+use PayBear\PayBear;
+use PayBear\ApiRequest;
 
 /**
  * Class Payments
@@ -9,10 +10,20 @@ use PayBear\HttpClient\ClientInterface;
  *
  * @package PayBear
  */
-class Payments
+class Payments extends ApiResource
 {
+	use ApiOperations\All;
+	use ApiOperations\Create;
+
+	public static function classUrl()
+	{
+		$callback = PayBear::$callback;
+		$token = PayBear::$apiKey;
+		return "%s/payment/${callback}?token=${token}";
+	}
+
 	public function createTransaction($currency)
 	{
-		$url = sprintf('https://api.paybear.io/v2/eth/payment/%s?token=%s', urlencode($callbackUrl), $apiSecret);
+
 	}
 }

@@ -3,7 +3,7 @@
 namespace PayBear\HttpClient;
 
 use PayBear\PayBear;
-use PayBear\Error\CustomException;
+use PayBear\Error;
 use PayBear\Util\RandomGenerator;
 
 /**
@@ -98,11 +98,12 @@ class CurlClient implements ClientInterface
      * @param string $url The URL being used.
      * @param array|null $params The paramters being used.
      * @param string|null $hasFile The file being used.
+     * @throws Error\CustomException
      */
-    public function request($method, $url, $params = null, $hasFile = null)
-    {
-    	$method = strtolower($method);
-    	$opts = [];
+   public function request($method, $url, $params = null, $hasFile = null)
+   {
+     $method = strtolower($method);
+     $opts = [];
 
     	/*
     	* At the time of writing this library, PayBear's API * only accepted GET requests.
@@ -113,17 +114,17 @@ class CurlClient implements ClientInterface
     	switch ($method) {
     		case 'get':
     		if ($hasfile) {
-    			throw new CustomException('Cannot make GET request with file parameter.');
+    			throw new Error\CustomException('Cannot make GET request with file parameter.');
     		} else {
     			$opts['CURL_HTTPGET'] = 1;
     		}
     		break;
     		case 'post':
     		case 'delete':
-    		throw new CustomException('HTTP Method not supported.');
+    		throw new Error\CustomException('HTTP Method not supported.');
     		break;
     		default:
-    		throw new CustomException('HTTP Method not supported.');
+    		throw new Error\CustomException('HTTP Method not supported.');
     	}
 
     	/*
@@ -168,16 +169,27 @@ class CurlClient implements ClientInterface
     		/*
     		* Check if client should retry request
     		*/
+            if (self::retryCalculate($errno, $rcode, $numRetries)) {
+                $numRetries +=1;
+                $sleepSeconds = self::sleepTime($numRetries);
+                usleep(intval($sleepSeconds*1000000));
+            }
+        } else {
+            break;
+        }
 
-    		/*
-    		* Report error to user if all requests failed
-    		*/
-    		$this->handleCurlError($url, $errno, $message, $numRetries);
-    	}
+        /*
+        * Report error to user if all requests failed
+        */
+        if ($response === false) {
+            self::handleCurlError($url, $errno, $message, $numRetries);
+        }
+
+        return [$rbody, $rcode];
     }
 
     /**
-     * Handles any errors from curl requests
+     * Handles any errors from curl requests.
      *
  	 * @param string $url
      * @param int $errno
@@ -204,7 +216,7 @@ class CurlClient implements ClientInterface
     	$msg .= "\nErrno: ${errno}";
     	$msg .= "\nError Message: ${message}";
     	$msg .= "\nNumber of retries: ${numRetries}";
-    	throw new CustomException($msg);
+    	throw new Error\CustomException($msg);
     }
 
     /**
